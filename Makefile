@@ -1,5 +1,5 @@
-CFLAGS=$(shell pkg-config --cflags libsocial)
-LIBS=$(shell pkg-config --libs libsocial)
+CFLAGS=$(shell pkg-config --cflags libsocial libwebsocket)
+LIBS=$(shell pkg-config --libs libsocial libwebsocket)
 EMSCRIPTVERSION=1.37.12
 GMPVERSION=6.1.2
 NETTLEVERSION=3.3
@@ -8,11 +8,8 @@ SOCIALNETWORKREVISION=9e11beb56de1c867b1339fef577c97c2ac619d59
 
 all: webpeer socialnetwork/libsocial.js
 
-webpeer: daemon.o webpeer.o libwebsocket/libwebsocket.so
-	$(CC) -Wl,-R"$(shell pwd)/libwebsocket" $^ libwebsocket/libwebsocket.so $(LIBS) -o $@
-
-libwebsocket/libwebsocket.so:
-	make -C libwebsocket
+webpeer: daemon.o webpeer.o
+	$(CC) $^ $(LIBS) -o $@
 
 toolchain/usr/bin/emcc: emscripten-$(EMSCRIPTVERSION).tar.gz emscripten-fastcomp-$(EMSCRIPTVERSION).tar.gz emscripten-fastcomp-clang-$(EMSCRIPTVERSION).tar.gz
 	./buildtoolchain.sh '$(EMSCRIPTVERSION)'
