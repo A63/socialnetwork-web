@@ -17,8 +17,8 @@
 var connection;
 function websockwrite(addr, addrlen, buf, size)
 {
-  addr=new Blob(Module.HEAP8.subarray(addr, addr+addrlen));
-  buf=new Blob(Module.HEAP8.subarray(buf, buf+size));
+  addr=new Blob([Module.HEAP8.subarray(addr, addr+addrlen)]);
+  buf=new Blob([Module.HEAP8.subarray(buf, buf+size)]);
   connection.send(addr);
   connection.send(buf);
 }
@@ -31,28 +31,33 @@ var firstpacket=true;
 function handlenet(data)
 {
   var f=new FileReader();
+  f.onload=function()
+  {
+    data=new Int8Array(f.result);
+    if(firstpacket) // Bootstrap
+    {
+      firstpacket=false;
+      // TODO: Read lengths and pass subarrays until we reach the end of the array. length=data[pos]*256+data[pos+1]
+      peer_new_unique(-1, data, data.length);
+      return;
+    }
+    if(websockproxy_to)
+    {
+      websockproxy_read(websockproxy_to, websockproxy_to.length, data, data.length);
+      _peer_handlesocket(-1); // Handle whatever we just received
+      websockproxy_to=false;
+    }else{websockproxy_to=data;}
+  };
   f.readAsArrayBuffer(data.data);
-  data=new Int8Array(f.result);
-  if(firstpacket) // Bootstrap
-  {
-    firstpacket=false;
-    // TODO: Read lengths and pass subarrays until we reach the end of the array. length=data[pos]*256+data[pos+1]
-    peer_new_unique(-1, data, data.length);
-    return;
-  }
-  if(websockproxy_to)
-  {
-    websockproxy_read(websockproxy_to, websockproxy_to.length, data, data.length);
-    _peer_handlesocket(-1); // Handle whatever we just received
-  }else{websockproxy_to=data;}
 }
 function init(privkey)
 {
   websockproxy_read=Module.cwrap('websockproxy_read', null, ['array', 'number', 'array', 'number']);
   peer_new_unique=Module.cwrap('peer_new_unique', 'array', ['number', 'array', 'number']);
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
-  connection=new WebSocket('wss://127.0.0.1:5000/', 'socialwebsock-0.1');
+  Module.ccall('jsglue_addfile', null, ['string', 'string', 'number'], ['privkey.pem', privkey, privkey.length]);
+  Module.ccall('social_init', null, ['string', 'string'], ['privkey.pem', '']);
+  connection=new WebSocket('wss://'+document.domain+':5000/', 'socialwebsock-0.1');
   connection.onmessage=handlenet;
   connection.onclose=function(){alert('The connection to the server was lost.');};
-  Module.ccall('social_init', null, ['string', 'string'], [privkey, '']);
 }

@@ -17,7 +17,7 @@
 prefix="`pwd`/toolchain/usr"
 export PATH="${prefix}/bin:${PATH}"
 export PKG_CONFIG_PATH="${prefix}/lib/pkgconfig"
-export CFLAGS='-O3' # TODO: Make sure these didn't break anything
+export CFLAGS='-O3'
 export LDFLAGS='-O3'
 GMPVERSION="$1"
 NETTLEVERSION="$2"
@@ -29,35 +29,50 @@ tar -xJf "../gmp-${GMPVERSION}.tar.xz"
 cd "gmp-${GMPVERSION}"
 mkdir -p build
 cd build
-emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --disable-assembly
+emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --disable-assembly ABI=32 ac_cv_sizeof_mp_limb_t=4
 make
 make install
 cd ../..
+
 # nettle
 tar -xzf "../nettle-${NETTLEVERSION}.tar.gz"
 cd "nettle-${NETTLEVERSION}"
 # Remove emscripten-incompatible options
 sed -i -e 's/ -ggdb3//' configure
-# Work around broken macros
-sed -i -e 's/#if !/#ifndef /' camellia-internal.h camellia-absorb.c
-sed -i -e 's/#if /#ifdef /' camellia-crypt-internal.c
 # Work around emscripten limitations with fopen in configure
 sed -i -e 's/FILE *\* *f *= *fopen *( *\("[^"]*"\)/#include <unistd.h>\n#include <fcntl.h>\nint fd=open(\1, O_WRONLY|O_CREAT|O_TRUNC, 0644);\nFILE*f=fdopen(fd/' configure
 mkdir -p build
 cd build
-emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --disable-assembler --disable-documentation LDFLAGS="-L${prefix}/lib -I${prefix}/include" CFLAGS="-I${prefix}/include"
-sed -i -e 's/^#define SIZEOF[^ ]* $/&4/' config.h
+emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --disable-assembler --disable-documentation LDFLAGS="-L${prefix}/lib -I${prefix}/include" CFLAGS="-I${prefix}/include" ac_cv_sizeof_char=1 ac_cv_sizeof_int=4 ac_cv_sizeof_long=4 ac_cv_sizeof_short=2 ac_cv_sizeof_size_t=4 ac_cv_sizeof_voidp=4
 make GMP_NUMB_BITS=32
 make install
 cd ../..
+
 # gnutls
 tar -xJf "../gnutls-${GNUTLSVERSION}.tar.xz"
 cd "gnutls-${GNUTLSVERSION}"
 mkdir -p build
 cd build
-emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --with-included-libtasn1 --disable-hardware-acceleration --disable-dtls-srtp-support --disable-srp-authentication --disable-psk-authentication --disable-openpgp-authentication --disable-ocsp --disable-openssl-compatibility --disable-nls --disable-libdane --without-tpm --without-p11-kit --disable-tests --disable-cxx --disable-tools --with-included-unistring --with-zlib LDFLAGS="-L${prefix}/lib"
+emconfigure ../configure --prefix="$prefix" --disable-static --enable-shared --with-included-libtasn1 --disable-hardware-acceleration --disable-dtls-srtp-support --disable-srp-authentication --disable-psk-authentication --disable-openpgp-authentication --disable-ocsp --disable-openssl-compatibility --disable-nls --disable-libdane --without-tpm --without-p11-kit --disable-tests --disable-cxx --disable-tools --with-included-unistring --with-zlib ac_cv_sizeof_char_p=4 ac_cv_sizeof_long=4 ac_cv_sizeof_short=2 ac_cv_sizeof_unsigned_int=4 ac_cv_sizeof_unsigned_long_int=4 ac_cv_sizeof_void_p=4 LDFLAGS="-L${prefix}/lib"
 make
 make install defexec_DATA=
+
+# socialnetwork
 cd ../../../socialnetwork
-git apply ../adaptforjs.patch
-emmake make
+# Get rid of code and structures that were needed for UDP, add some stuff needed for websockets
+if [ ! -e .patched ]; then
+  sed -i -e 's|^ *stream_send|// &|
+s/if(.*timestamp.*/if(0)/
+s|^[^/].*sentpacket|// &|
+s|^static\(.* stream_new(\)|\1|
+/stream_send.*TYPE_PAYLOAD/a websockproxy_write(&stream->addr, stream->addrlen, buf, size);
+/time_t timestamp;/a uint16_t wsseq;
+/stream=malloc/a stream->wsseq=0;' udpstream.c
+  sed -i -e 's|^ *udpstream_readsocket|// &|' peer.c
+  touch .patched
+fi
+# Expose internal structures that we need to interact with to inject packets from websockets
+mkdir -p "${prefix}/include/libsocial"
+sed -n -e '/^struct [^()*]*$/,/^}/p' udpstream.c > "${prefix}/include/libsocial/udpstream_private.h"
+emmake make PREFIX="$prefix" CC='emcc -include ../jsglue.h -O3'
+emmake make install PREFIX="$prefix"

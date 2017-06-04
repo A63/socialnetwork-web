@@ -40,8 +40,7 @@ void webpeer(int sock)
   struct sockaddr_in bootstrapaddr={
     .sin_family=AF_INET,
     .sin_addr.s_addr=0x100007f,
-    .sin_port=htons(4000),
-    0
+    .sin_port=htons(4000)
   };
   websock_write(conn, &bootstrapaddr, sizeof(bootstrapaddr), WEBSOCK_BINARY);
   // Listen to client and udpstream socket and pass messages back and forth (client handles the TLS within the udpstream)
