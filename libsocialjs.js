@@ -33,12 +33,17 @@ function handlenet(data)
   var f=new FileReader();
   f.onload=function()
   {
-    data=new Int8Array(f.result);
+    data=new Uint8Array(f.result);
     if(firstpacket) // Bootstrap
     {
       firstpacket=false;
-      // TODO: Read lengths and pass subarrays until we reach the end of the array. length=data[pos]*256+data[pos+1]
-      peer_new_unique(-1, data, data.length);
+      // Read sockaddr lengths and pass subarrays until we reach the end of the array
+      while(data.length>2)
+      {
+        var len=data[0]*256+data[1];
+        peer_new_unique(-1, data.subarray(2, 2+len), len);
+        data=data.subarray(2+len);
+      }
       return;
     }
     if(websockproxy_to)

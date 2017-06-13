@@ -20,7 +20,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <libsocial/udpstream.h>
-#include "libwebsocket/websock.h"
+#include <libwebsocket/websock.h>
+#include "addrlist.h"
 
 const char* verifyproto(const char* path, const char* host, char* protocol, const char* origin)
 {
@@ -35,14 +36,41 @@ void webpeer(int sock)
   websock_conn* conn=websock_new(sock, 1, "cert.pem", "priv.pem");
   if(!websock_handshake_server(conn, verifyproto, 0)){printf("Handshake failed\n"); return;}
   int udpsock=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-// TODO: First send a list of bootstrap peers, should this be binary too?
-//  websock_write(conn, "127.0.0.1:4000", 14, WEBSOCK_TEXT);
-  struct sockaddr_in bootstrapaddr={
-    .sin_family=AF_INET,
-    .sin_addr.s_addr=0x100007f,
-    .sin_port=htons(4000)
-  };
-  websock_write(conn, &bootstrapaddr, sizeof(bootstrapaddr), WEBSOCK_BINARY);
+  // First send a list of bootstrap peers
+  if(!verified.count) // No verified peers yet, suggest localhost:4000 as a starting point
+  {
+    struct sockaddr_in bootstrapaddr={
+      .sin_family=AF_INET,
+      .sin_addr.s_addr=htonl(0x7f000001),
+      .sin_port=htons(4000)
+    };
+    uint16_t len=htons(sizeof(bootstrapaddr));
+    char buf[sizeof(len)+sizeof(bootstrapaddr)];
+    memcpy(buf, &len, sizeof(len));
+    memcpy(buf+sizeof(len), &bootstrapaddr, sizeof(bootstrapaddr));
+    websock_write(conn, buf, sizeof(len)+sizeof(bootstrapaddr), WEBSOCK_BINARY);
+  }else{
+    // Construct a single message containing all peers
+    unsigned int size=verified.count*(sizeof(uint16_t)+sizeof(struct sockaddr_storage));
+    char buf[size];
+    void* ptr=buf;
+    unsigned int i;
+    for(i=0; i<verified.count; ++i)
+    {
+      uint16_t len=0;
+      switch(verified.addr[i].ss_family)
+      {
+        case AF_INET: len=htons(sizeof(struct sockaddr_in)); break;
+        case AF_INET6: len=htons(sizeof(struct sockaddr_in6)); break;
+      }
+      if(!len){continue;}
+      memcpy(ptr, &len, sizeof(len));
+      ptr+=sizeof(len);
+      len=ntohs(len);
+      memcpy(ptr, &verified.addr[i], len);
+      ptr+=len;
+    }
+  }
   // Listen to client and udpstream socket and pass messages back and forth (client handles the TLS within the udpstream)
   struct pollfd pfd[]={{.fd=sock, .events=POLLIN, .revents=0}, {.fd=udpsock, .events=POLLIN, .revents=0}};
   while(1)
@@ -62,10 +90,11 @@ printf("Handling websocket input...\n");
       if(!websock_readhead(conn, &head)){break;}
       char buf[head.length];
       while(!websock_readcontent(conn, buf, &head));
-      struct udpstream* stream=udpstream_find((struct sockaddr*)addr, addrlen);
+      struct udpstream* stream=udpstream_find((struct sockaddr_storage*)addr, addrlen);
       if(!stream) // TODO: Check against blocklist (don't let people use this service to flood others over UDP), also add a brief block for the entire host until we know this connection is ok
       {
-        stream=udpstream_new(udpsock, (struct sockaddr*)addr, addrlen);
+        if(!addrlist_check((struct sockaddr_storage*)addr, addrlen)){continue;}
+        stream=udpstream_new(udpsock, (struct sockaddr_storage*)addr, addrlen);
       }
 // printf("Writing %u bytes\n", head.length);
       udpstream_write(stream, buf, head.length);
@@ -81,9 +110,10 @@ printf("Handling udpsocket input...\n");
         char buf[2048];
         ssize_t len=udpstream_read(stream, buf, 2048);
         if(len<1){udpstream_close(stream); continue;}
-        struct sockaddr addr;
+        struct sockaddr_storage addr;
         socklen_t addrlen=sizeof(addr);
         udpstream_getaddr(stream, &addr, &addrlen);
+        addrlist_verify(&addr, addrlen);
         websock_write(conn, &addr, addrlen, WEBSOCK_BINARY);
         websock_write(conn, buf, len, WEBSOCK_BINARY);
       }

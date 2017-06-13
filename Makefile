@@ -11,7 +11,7 @@ JSCFLAGS=$(shell PKG_CONFIG_PATH=toolchain/usr/lib/pkgconfig pkg-config --cflags
 
 all: webpeer libsocial.js
 
-webpeer: daemon.o webpeer.o
+webpeer: daemon.o webpeer.o addrlist.o
 	$(CC) $^ $(LIBS) -o $@
 
 toolchain/usr/bin/emcc: emscripten-$(EMSCRIPTVERSION).tar.gz emscripten-fastcomp-$(EMSCRIPTVERSION).tar.gz emscripten-fastcomp-clang-$(EMSCRIPTVERSION).tar.gz
