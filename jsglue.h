@@ -31,4 +31,4 @@ extern ssize_t jsglue_write(int fd, const void* buf, size_t size);
 extern int jsglue_open(const char* path, int flags, mode_t mode);
 extern int jsglue_stat(const char* path, struct stat* st);
 extern void jsglue_close(int fd);
-extern void(*websockproxy_write)(struct sockaddr*, socklen_t, const void*, size_t);
+extern void(*websockproxy_write)(struct sockaddr_storage*, socklen_t, const void*, size_t);

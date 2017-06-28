@@ -22,7 +22,7 @@
 #include <libsocial/udpstream_private.h>
 #include <libsocial/udpstream.h>
 #include "jsglue.h"
-extern struct udpstream* stream_new(int sock, struct sockaddr* addr, socklen_t addrlen);
+extern struct udpstream* stream_new(int sock, struct sockaddr_storage* addr, socklen_t addrlen);
 
 struct file
 {
@@ -115,12 +115,12 @@ void jsglue_addfile(const char* path, const void* data, size_t size)
   f->size=size;
 }
 
-void(*websockproxy_write)(struct sockaddr*, socklen_t, const void*, size_t);
-void websockproxy_setwrite(void(*writefunc)(struct sockaddr*, socklen_t, const void*, size_t))
+void(*websockproxy_write)(struct sockaddr_storage*, socklen_t, const void*, size_t);
+void websockproxy_setwrite(void(*writefunc)(struct sockaddr_storage*, socklen_t, const void*, size_t))
 {
   websockproxy_write=writefunc;
 }
-void websockproxy_read(struct sockaddr* addr, socklen_t addrlen, const void* buf, size_t payloadsize)
+void websockproxy_read(struct sockaddr_storage* addr, socklen_t addrlen, const void* buf, size_t payloadsize)
 {
   // Find the stream
   struct udpstream* stream=udpstream_find(addr, addrlen);

@@ -4,7 +4,7 @@ EMSCRIPTVERSION=1.37.12
 GMPVERSION=6.1.2
 NETTLEVERSION=3.3
 GNUTLSVERSION=3.5.12
-SOCIALNETWORKREVISION=9e11beb56de1c867b1339fef577c97c2ac619d59
+SOCIALNETWORKREVISION=c76b97a476bf6899bd775e298f9ed5fad650304e
 REVISION=$(shell git log | sed -n -e 's/^commit //p;q')
 JSLIBS=$(shell PKG_CONFIG_PATH=toolchain/usr/lib/pkgconfig pkg-config --libs gnutls nettle hogweed) -lgmp
 JSCFLAGS=$(shell PKG_CONFIG_PATH=toolchain/usr/lib/pkgconfig pkg-config --cflags gnutls)
