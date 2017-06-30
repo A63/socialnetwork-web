@@ -60,7 +60,7 @@ function init(privkey)
   websockproxy_read=Module.cwrap('websockproxy_read', null, ['array', 'number', 'array', 'number']);
   peer_new_unique=Module.cwrap('peer_new_unique', 'array', ['number', 'array', 'number']);
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
-  Module.ccall('jsglue_addfile', null, ['string', 'string', 'number'], ['privkey.pem', privkey, privkey.length]);
+  FS.writeFile('privkey.pem', privkey, {});
   Module.ccall('social_init', null, ['string', 'string'], ['privkey.pem', '']);
   connection=new WebSocket('wss://'+document.domain+':5000/', 'socialwebsock-0.1');
   connection.onmessage=handlenet;

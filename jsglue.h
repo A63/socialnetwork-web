@@ -17,18 +17,5 @@
 #include <unistd.h> // Include it first because we're going to override some functions from there, but don't want to get any mess from the declarations
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 
-#define read(fd,buf,size) jsglue_read(fd,buf,size)
-#define write(fd,buf,size) jsglue_write(fd,buf,size)
-#define open(path,flags,...) jsglue_open(path,flags,0)
-#define stat(path,st) jsglue_stat(path,st)
-#define close(fd) jsglue_close(fd)
-#define mkdir(path,mode) 0 // Screw directories :)
-
-extern ssize_t jsglue_read(int fd, void* buf, size_t size);
-extern ssize_t jsglue_write(int fd, const void* buf, size_t size);
-extern int jsglue_open(const char* path, int flags, mode_t mode);
-extern int jsglue_stat(const char* path, struct stat* st);
-extern void jsglue_close(int fd);
 extern void(*websockproxy_write)(struct sockaddr_storage*, socklen_t, const void*, size_t);

@@ -11,7 +11,8 @@ function initgui()
   chdisplay('login_window',false);
   if(key=='')
   {
-// TODO: get the generated key and hand it to the user (as text or fileblob? or both?)
+    alert('Key:\n'+FS.readFile('privkey.pem', {'encoding':'utf8'}));
+// TODO: Display generated key in a nicer modal window, possibly with a fileblob download option
   }
 // TODO: display any updates we may have (actually we probably won't have any yet, update when we get them, callback for 'updates' command?)
 }
