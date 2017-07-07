@@ -28,7 +28,8 @@
       Please choose how to login/create an account/key<br />
       <div class="inline">
         <button onclick="chdisplay('login_select','login_account');">Account on the server</button><br />
-        The simple option. TODO: link for details
+        The simple option. <a href="#" id="login_techlink" onclick="chdisplay('login_techlink','login_techdetails');return false;">Click here for details.</a>
+        <span id="login_techdetails" style="display:none;">Private key stored encrypted on the server and tied to your username (and a passkey generated on the client side from a hash of the key's password to obtain the encrypted key for local decryption)</span>
       </div>
       <div class="inline">
         <button onclick="chdisplay('login_select','login_privkey');">Private key file</button><br />
