@@ -15,7 +15,6 @@
     <div id="login_privkey" style="display:none;">
       Paste your private key below, or leave empty to generate a new key<br />
       <textarea id="privkey"></textarea><br />
-      Note: generating a key takes a while, you may need to tell your browser to let the script continue.<br />
       <button onclick="initgui();">Continue</button>
     </div>
     <div id="login_account" style="display:none;">
@@ -35,6 +34,12 @@
         <button onclick="chdisplay('login_select','login_privkey');">Private key file</button><br />
         Use a private key file that you yourself are responsible for.
       </div>
+    </div>
+  </div>
+  <div class="modal" id="key_window" style="display:none;">
+    <div id="key_generating">
+      Generating key...<br />
+      Note: generating a key takes a while, you may need to tell your browser to let the script continue.<br />
     </div>
   </div>
   <!-- Main interface -->
