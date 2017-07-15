@@ -21,7 +21,7 @@ toolchain/usr/lib/libsocial.so: toolchain/usr/bin/emcc
 	./buildlibs.sh '$(GMPVERSION)' '$(NETTLEVERSION)' '$(GNUTLSVERSION)'
 
 libsocial.js: jsglue.c toolchain/usr/lib/libsocial.so
-	toolchain/usr/bin/emcc -O3 -s EXPORTED_FUNCTIONS="['_social_init','_peer_handlesocket','_peer_new_unique','_websockproxy_read','_websockproxy_setwrite','_jsglue_addfile']" -s RESERVED_FUNCTION_POINTERS=1 -s NO_EXIT_RUNTIME=1 -s NODEJS_CATCH_EXIT=0 -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','readFile','writeFile']" -s INVOKE_RUN=0 $(JSCFLAGS) $^ $(JSLIBS) -o $@
+	toolchain/usr/bin/emcc -O3 -s EXPORTED_FUNCTIONS="['_social_init','_peer_handlesocket','_peer_new_unique','_websockproxy_read','_websockproxy_setwrite','_getcirclecount','_newcircle','_circle_getcount','_circle_getname','_circle_setname','_social_addfriend','_circle_getid']" -s RESERVED_FUNCTION_POINTERS=1 -s NO_EXIT_RUNTIME=1 -s NODEJS_CATCH_EXIT=0 -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','readFile','writeFile']" -s INVOKE_RUN=0 $(JSCFLAGS) $^ $(JSLIBS) -o $@
 	./squeezeandcomment.sh '$@' 'This code was built from gmp $(GMPVERSION), nettle $(NETTLEVERSION), gnutls $(GNUTLSVERSION) and socialnetwork git revision $(SOCIALNETWORKREVISION) with tweaks from socialnetwork-web git revision $(REVISION) using emscripten (fastcomp) $(EMSCRIPTVERSION)'
 
 # Download all external sources we'll need

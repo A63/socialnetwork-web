@@ -25,6 +25,10 @@ function websockwrite(addr, addrlen, buf, size)
 
 var websockproxy_read;
 var peer_new_unique;
+var circle_getname;
+var circle_setname;
+var circle_getid;
+var social_addfriend;
 
 var websockproxy_to=false;
 var firstpacket=true;
@@ -59,10 +63,52 @@ function init(privkey)
 {
   websockproxy_read=Module.cwrap('websockproxy_read', null, ['array', 'number', 'array', 'number']);
   peer_new_unique=Module.cwrap('peer_new_unique', 'array', ['number', 'array', 'number']);
+  // Low level access functions
+  getcirclecount=Module.cwrap('getcirclecount', 'number', []);
+  newcircle=Module.cwrap('newcircle', 'number', []);
+  circle_getcount=Module.cwrap('circle_getcount', 'number', ['number']);
+  circle_getname=Module.cwrap('circle_getname', 'string', ['number']);
+  circle_setname=Module.cwrap('circle_setname', null, ['number', 'string']);
+  circle_getid=Module.cwrap('circle_getid', 'string', ['number','number']);
+  social_addfriend=Module.cwrap('social_addfriend', null, ['array', 'number']);
+
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
   FS.writeFile('privkey.pem', privkey, {});
   Module.ccall('social_init', null, ['string', 'string'], ['privkey.pem', '']);
   connection=new WebSocket('wss://'+document.domain+':5000/', 'socialwebsock-0.1');
   connection.onmessage=handlenet;
   connection.onclose=function(){alert('The connection to the server was lost.');};
+}
+function getcircles()
+{
+  var circles=new Array();
+  var len=getcirclecount();
+  for(var i=0; i<len; ++i)
+  {
+    var circle=new Object();
+    circle.name=circle_getname(i);
+    circle.index=i;
+    if(circle_getcount(i)>0 || circle.name!=''){circles.push(circle);}
+  }
+  return circles;
+}
+function circle_getfriends(index)
+{
+  // Call C functions to gather number of friends and their IDs
+  var friends=new Array();
+  var count=circle_getcount(index);
+  for(var i=0; i<count; ++i)
+  {
+    friends.push(circle_getid(index, i));
+  }
+  return friends;
+}
+function hextobin(hex)
+{
+  var bin=new Array();
+  for(var i=0; i<hex.length; i+=2)
+  {
+    bin.push(parseInt(hex.substring(i,i+2), 16));
+  }
+  return new Uint8Array(bin);
 }

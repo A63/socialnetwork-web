@@ -43,9 +43,19 @@
       Note: generating a key takes a while, you may need to tell your browser to let the script continue.<br />
     </div>
   </div>
+  <div class="modal" id="circle_window" style="display:none;">
+    Name:<input type="text" id="circle_name" /><br />
+    Privacy:<select id="circle_privacy">
+      <option>Select circles only</option>
+      <option>Friends</option>
+      <option>Everyone</option>
+    </select><br />
+    <div id="circle_circles"></div><br />
+    <button onclick="circle_save();">OK</button> &nbsp; <button onclick="chdisplay('circle_window',false);">Cancel</button>
+  </div>
   <!-- Main interface -->
   <div class="menu">
-    <a href="#">Feed</a><a href="#">Friends</a><a href="#">Self</a>
+    <a href="#" onclick="return false;">Feed</a><a href="#" onclick="page_friends();return false;">Friends</a><a href="#" onclick="return false;">Self</a>
   </div>
   <div id="display"></div>
 </body>

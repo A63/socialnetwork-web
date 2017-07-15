@@ -16,11 +16,13 @@
 */
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <libsocial/udpstream_private.h>
 #include <libsocial/udpstream.h>
+#include <libsocial/social.h>
 #include "jsglue.h"
 extern struct udpstream* stream_new(int sock, struct sockaddr_storage* addr, socklen_t addrlen);
 
@@ -41,4 +43,55 @@ void websockproxy_read(struct sockaddr_storage* addr, socklen_t addrlen, const v
   stream->recvpackets[stream->recvpacketcount-1].buf=malloc(payloadsize);
   stream->recvpackets[stream->recvpacketcount-1].buflen=payloadsize;
   memcpy(stream->recvpackets[stream->recvpacketcount-1].buf, buf, payloadsize);
+}
+
+unsigned int getcirclecount(void)
+{
+  return social_self->circlecount;
+}
+
+// Find an empty circle and reset it, empty and nameless I guess, then return its index
+unsigned int newcircle(void)
+{
+  unsigned int i;
+  for(i=0; i<social_self->circlecount; ++i)
+  {
+    if(!social_self->circles[i].count && !social_self->circles[i].name){break;}
+  }
+  if(i==social_self->circlecount)
+  {
+    ++social_self->circlecount;
+    social_self->circles=realloc(social_self->circles, social_self->circlecount*sizeof(struct friendslist));
+  }else{
+    free(social_self->circles[i].privacy.circles);
+  }
+  memset(&social_self->circles[i], 0, sizeof(struct friendslist));
+  return i;
+}
+// TODO: how to configure privacy structs?
+
+unsigned int circle_getcount(unsigned int i)
+{
+  if(i>=social_self->circlecount){return 0;}
+  return social_self->circles[i].count;
+}
+const char* circle_getid(unsigned int i, unsigned int u)
+{
+  if(i>=social_self->circlecount){return 0;}
+  if(u>=social_self->circles[i].count){return 0;}
+  unsigned char* bin=social_self->circles[i].friends[u]->id;
+  static char id[ID_SIZE*2+1];
+  sprintf(id, PEERFMT, PEERARG(social_self->circles[i].friends[u]->id));
+  return id;
+}
+const char* circle_getname(unsigned int i)
+{
+  if(i>=social_self->circlecount){return 0;}
+  return social_self->circles[i].name;
+}
+void circle_setname(unsigned int i, const char* name)
+{
+  if(i>=social_self->circlecount){return;}
+  free(social_self->circles[i].name);
+  social_self->circles[i].name=strdup(name);
 }
