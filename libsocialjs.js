@@ -25,10 +25,18 @@ function websockwrite(addr, addrlen, buf, size)
 
 var websockproxy_read;
 var peer_new_unique;
+var getcirclecount;
+var newcircle;
+var circle_getcount;
 var circle_getname;
 var circle_setname;
 var circle_getid;
 var social_addfriend;
+var social_finduser;
+var user_getupdatecount;
+var user_getupdatetype;
+var user_getupdatetimestamp;
+var self_getid;
 
 var websockproxy_to=false;
 var firstpacket=true;
@@ -71,6 +79,11 @@ function init(privkey)
   circle_setname=Module.cwrap('circle_setname', null, ['number', 'string']);
   circle_getid=Module.cwrap('circle_getid', 'string', ['number','number']);
   social_addfriend=Module.cwrap('social_addfriend', null, ['array', 'number']);
+  social_finduser=Module.cwrap('social_finduser', 'number', ['array']);
+  user_getupdatecount=Module.cwrap('user_getupdatecount', 'number', ['number']);
+  user_getupdatetype=Module.cwrap('user_getupdatetype', 'string', ['number','number']);
+  user_getupdatetimestamp=Module.cwrap('user_getupdatetimestamp', 'number', ['number','number']);
+  self_getid=Module.cwrap('self_getid', 'string', []);
 
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
   FS.writeFile('privkey.pem', privkey, {});
@@ -111,4 +124,23 @@ function hextobin(hex)
     bin.push(parseInt(hex.substring(i,i+2), 16));
   }
   return new Uint8Array(bin);
+}
+function getuser(id)
+{
+  var userptr=social_finduser(hextobin(id));
+  if(!userptr){return false;}
+  var user=new Object();
+  user.ptr=userptr;
+  user.id=id;
+// TODO: Gather more user data? No need to store updates themselves in user objects though
+  user.updatecount=user_getupdatecount(userptr);
+  return user;
+}
+function user_getupdate(user, index)
+{
+  var update=new Object();
+  update.type=user_getupdatetype(user.ptr, index);
+  update.timestamp=user_getupdatetimestamp(user.ptr, index);
+// TODO: Get type-specific data
+  return update;
 }

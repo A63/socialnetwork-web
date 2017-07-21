@@ -23,6 +23,7 @@
 #include <libsocial/udpstream_private.h>
 #include <libsocial/udpstream.h>
 #include <libsocial/social.h>
+#include <libsocial/update.h>
 #include "jsglue.h"
 extern struct udpstream* stream_new(int sock, struct sockaddr_storage* addr, socklen_t addrlen);
 
@@ -94,4 +95,28 @@ void circle_setname(unsigned int i, const char* name)
   if(i>=social_self->circlecount){return;}
   free(social_self->circles[i].name);
   social_self->circles[i].name=strdup(name);
+}
+unsigned int user_getupdatecount(struct user* user){return user->updatecount;}
+const char* user_getupdatetype(struct user* user, unsigned int index)
+{
+  switch(user->updates[index].type)
+  {
+  case UPDATE_FIELD: return "Field";
+  case UPDATE_POST: return "Post";
+  case UPDATE_MEDIA: return "Media";
+  case UPDATE_FRIENDS: return "Friends";
+  case UPDATE_CIRCLE: return "Circle";
+  }
+  return "Unknown";
+}
+uint64_t user_getupdatetimestamp(struct user* user, unsigned int index)
+{
+  return user->updates[index].timestamp;
+}
+const char* self_getid(void)
+{
+  unsigned char* bin=social_self->id;
+  static char id[ID_SIZE*2+1];
+  sprintf(id, PEERFMT, PEERARG(social_self->id));
+  return id;
 }

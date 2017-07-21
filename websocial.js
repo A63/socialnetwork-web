@@ -139,6 +139,28 @@ function page_friends()
   }
 }
 
+function page_user(id)
+{
+  if(!id){id=self_getid();} // No ID = show our own page
+  var display=document.getElementById('display');
+  dom_clear(display);
+  // TODO: Get and present fields
+  var user=getuser(id);
+  display.appendChild(document.createTextNode(id+':'));
+  display.appendChild(document.createElement('br'));
+  display.appendChild(document.createTextNode(user.updatecount+' updates'));
+  for(var i=1; i<=user.updatecount && i<=20; ++i)
+  {
+    var update=user_getupdate(user, user.updatecount-i);
+    var box=document.createElement('div');
+    box.appendChild(document.createTextNode('Posted at: '+update.timestamp));
+    box.appendChild(document.createElement('br'));
+    box.appendChild(document.createTextNode('Update type: '+update.type));
+    display.appendChild(box);
+  }
+// TODO: Option to load more updates
+}
+
 var configcircle_index;
 var configcircle_option=false;
 function circle_openconfig(index)
