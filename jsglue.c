@@ -50,27 +50,6 @@ unsigned int getcirclecount(void)
 {
   return social_self->circlecount;
 }
-
-// Find an empty circle and reset it, empty and nameless I guess, then return its index
-unsigned int newcircle(void)
-{
-  unsigned int i;
-  for(i=0; i<social_self->circlecount; ++i)
-  {
-    if(!social_self->circles[i].count && !social_self->circles[i].name){break;}
-  }
-  if(i==social_self->circlecount)
-  {
-    ++social_self->circlecount;
-    social_self->circles=realloc(social_self->circles, social_self->circlecount*sizeof(struct friendslist));
-  }else{
-    free(social_self->circles[i].privacy.circles);
-  }
-  memset(&social_self->circles[i], 0, sizeof(struct friendslist));
-  return i;
-}
-// TODO: how to configure privacy structs?
-
 unsigned int circle_getcount(unsigned int i)
 {
   if(i>=social_self->circlecount){return 0;}
@@ -90,12 +69,16 @@ const char* circle_getname(unsigned int i)
   if(i>=social_self->circlecount){return 0;}
   return social_self->circles[i].name;
 }
-void circle_setname(unsigned int i, const char* name)
+void setcircle(uint32_t circle, const char* name, uint8_t flags, void* circles, uint32_t circlecount)
 {
-  if(i>=social_self->circlecount){return;}
-  free(social_self->circles[i].name);
-  social_self->circles[i].name=strdup(name);
+  struct privacy priv={
+    .flags=flags,
+    .circles=circles,
+    .circlecount=circlecount
+  };
+  social_setcircle(circle, name, &priv);
 }
+struct privacy* circle_getprivacyptr(uint32_t circle){return &social_self->circles[circle].privacy;}
 unsigned int user_getupdatecount(struct user* user){return user->updatecount;}
 const char* user_getupdatetype(struct user* user, unsigned int index)
 {
@@ -120,3 +103,6 @@ const char* self_getid(void)
   sprintf(id, PEERFMT, PEERARG(social_self->id));
   return id;
 }
+uint8_t privacy_getflags(struct privacy* priv){return priv->flags;}
+uint32_t privacy_getcirclecount(struct privacy* priv){return priv->circlecount;}
+uint32_t privacy_getcircle(struct privacy* priv, uint32_t i){return priv->circles[i];}

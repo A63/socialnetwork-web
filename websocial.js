@@ -103,8 +103,7 @@ function page_friends()
   {
     if(this.value=='new')
     {
-      configcircle_option=this.selectedOptions[0];
-      circle_openconfig(newcircle());
+      circle_openconfig(newcircle(), this.selectedOptions[0]);
     }
   }
   box.appendChild(circle);
@@ -114,7 +113,6 @@ function page_friends()
   {
     if(circle.value=='new') // Need to create the circle first
     {
-      configcircle_option=circle.selectedOptions[0]; // option;
       circle.onchange();
       return;
     }
@@ -127,7 +125,12 @@ function page_friends()
   // TODO: Make this prettier, links to individual profile pages and get the name property
   for(item of circles)
   {
-    display.appendChild(document.createTextNode('Circle '+item.name+':'));
+    display.appendChild(document.createTextNode('Circle '+item.name+': '));
+    var button=document.createElement('button');
+    button.appendChild(document.createTextNode('Options'));
+    button.dataset.index=item.index;
+    button.onclick=function(){circle_openconfig(this.dataset.index, false);};
+    display.appendChild(button);
     display.appendChild(document.createElement('br'));
     var count=circle_getcount(item.index);
     for(var i=0; i<count; ++i)
@@ -161,15 +164,70 @@ function page_user(id)
 // TODO: Option to load more updates
 }
 
+function privacy_openconfig(prefix, priv)
+{
+  var circlebox=document.getElementById(prefix+'_privacy_circles');
+  dom_clear(circlebox);
+  var listed=[];
+  function listcircle(item, check)
+  {
+    if(listed.indexOf(item.index)>-1){return;}
+    listed.push(item.index);
+    var label=document.createElement('label');
+    if(item.title){label.title=item.title;}
+    var checkbox=document.createElement('input');
+    if(check){checkbox.checked=true;}
+    checkbox.type='checkbox';
+    checkbox.name=prefix+'_privacy_circles';
+    checkbox.value=item.index;
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(item.name+' '));
+    circlebox.appendChild(label);
+  }
+  if(priv) // Populate with circles from existing privacy
+  {
+    document.getElementById(prefix+'_privacy').value=priv.flags; // And the flags
+    for(item of priv.circles)
+    {
+      listcircle(item, true);
+    }
+  }
+  // Populate with circles from libsocial
+  var circles=getcircles();
+  for(item of circles)
+  {
+    listcircle(item, false);
+  }
+}
+
+function privacy_save(prefix)
+{
+  var circles=[];
+  var flags=document.getElementById(prefix+'_privacy').value;
+  var items=document.getElementsByName(prefix+'_privacy_circles');
+  for(item of items)
+  {
+    if(item.checked){circles.push({'index':item.value});}
+  }
+  return new privacy(flags, circles);
+}
+
 var configcircle_index;
 var configcircle_option=false;
-function circle_openconfig(index)
+function circle_openconfig(index, option)
 {
-  // TODO: Move circle-list population to its own function? likely needed for other privacy settings
-  var circles=document.getElementById('circle_circles');
-  dom_clear(circles);
-  // TODO: Populate with circles from libsocial
-  // TODO: Store index and checkbox elements for circle_save()
+  configcircle_option=option;
+  if(option && option.value=='new')
+  {
+    var priv={'flags':0,'circles':[{
+      'index':index,
+      'name':'This circle',
+      'title':'Let friends in this circle know about your other friends in the circle'
+    }]};
+  }else{
+    var priv=circle_getprivacy(index);
+  }
+  privacy_openconfig('circle', priv);
   var name=document.getElementById('circle_name');
   name.value=circle_getname(index);
   configcircle_index=index;
@@ -179,7 +237,8 @@ function circle_openconfig(index)
 function circle_save()
 {
   var name=document.getElementById('circle_name');
-  circle_setname(configcircle_index, name.value);
+  var priv=privacy_save('circle');
+  circle_set(configcircle_index, name.value, priv);
   if(configcircle_option)
   {
     var select=configcircle_option.parentNode;
