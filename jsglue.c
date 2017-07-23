@@ -80,9 +80,10 @@ void setcircle(uint32_t circle, const char* name, uint8_t flags, void* circles, 
 }
 struct privacy* circle_getprivacyptr(uint32_t circle){return &social_self->circles[circle].privacy;}
 unsigned int user_getupdatecount(struct user* user){return user->updatecount;}
-const char* user_getupdatetype(struct user* user, unsigned int index)
+struct update* user_getupdateptr(struct user* user, unsigned int index){return &user->updates[index];}
+const char* update_gettype(struct update* update)
 {
-  switch(user->updates[index].type)
+  switch(update->type)
   {
   case UPDATE_FIELD: return "Field";
   case UPDATE_POST: return "Post";
@@ -92,10 +93,8 @@ const char* user_getupdatetype(struct user* user, unsigned int index)
   }
   return "Unknown";
 }
-uint64_t user_getupdatetimestamp(struct user* user, unsigned int index)
-{
-  return user->updates[index].timestamp;
-}
+uint64_t update_gettimestamp(struct update* update){return update->timestamp;}
+const char* update_post_getmessage(struct update* update){return update->post.message;}
 const char* self_getid(void)
 {
   unsigned char* bin=social_self->id;
@@ -106,3 +105,12 @@ const char* self_getid(void)
 uint8_t privacy_getflags(struct privacy* priv){return priv->flags;}
 uint32_t privacy_getcirclecount(struct privacy* priv){return priv->circlecount;}
 uint32_t privacy_getcircle(struct privacy* priv, uint32_t i){return priv->circles[i];}
+void createpost(const char* msg, uint8_t flags, void* circles, uint32_t circlecount)
+{
+  struct privacy priv={
+    .flags=flags,
+    .circles=circles,
+    .circlecount=circlecount
+  };
+  social_createpost(msg, &priv);
+}

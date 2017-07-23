@@ -47,3 +47,18 @@ div.menu>a:nth-child(1)
 {
   border-left-style:none;
 }
+div.update
+{
+  border-style:solid;
+  border-color:#808080;
+  border-width:1px;
+  border-radius:6px;
+  padding:4px;
+  margin:5px;
+  min-width:40%;
+  max-width:96%;
+  overflow-wrap:break-word;
+  display:inline-block;
+  box-shadow:0px 0px 2px #c0c0c0;
+  background-color:#ffffff;
+}

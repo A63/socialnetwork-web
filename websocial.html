@@ -53,6 +53,15 @@
     <div id="circle_privacy_circles"></div><br />
     <button onclick="circle_save();">OK</button> &nbsp; <button onclick="chdisplay('circle_window',false);">Cancel</button>
   </div>
+  <div class="modal" id="privacy_window" style="display:none;">
+    <select id="generic_privacy">
+      <option value="0">Select circles only</option>
+      <option value="2">Friends</option>
+      <option value="1">Everyone</option>
+    </select><br />
+    <div id="generic_privacy_circles"></div><br />
+    <button id="privacy_button">OK</button> &nbsp; <button onclick="chdisplay('privacy_window',false);">Cancel</button>
+  </div>
   <!-- Main interface -->
   <div class="menu">
     <a href="#" onclick="return false;">Feed</a><a href="#" onclick="page_friends();return false;">Friends</a><a href="#" onclick="page_user(false);return false;">Self</a>

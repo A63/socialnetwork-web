@@ -151,14 +151,30 @@ function page_user(id)
   var user=getuser(id);
   display.appendChild(document.createTextNode(id+':'));
   display.appendChild(document.createElement('br'));
+  var button=document.createElement('button');
+  button.name='postbutton';
+  button.onclick=postwidget;
+  button.appendChild(document.createTextNode('Create update'));
+  display.appendChild(button);
+  display.appendChild(document.createElement('br'));
   display.appendChild(document.createTextNode(user.updatecount+' updates'));
   for(var i=1; i<=user.updatecount && i<=20; ++i)
   {
     var update=user_getupdate(user, user.updatecount-i);
+    if(update.type=='Circle'){continue;} // Don't display circle changes
     var box=document.createElement('div');
-    box.appendChild(document.createTextNode('Posted at: '+update.timestamp));
+    box.className='update';
+    var date=new Date(update.timestamp*1000);
+    box.appendChild(document.createTextNode('Posted at: '+date.toLocaleString()));
     box.appendChild(document.createElement('br'));
     box.appendChild(document.createTextNode('Update type: '+update.type));
+    // Display type-specific data
+    if(update.type=='Post')
+    {
+      box.appendChild(document.createElement('br'));
+      box.appendChild(document.createTextNode('Message: '+update.message));
+    }
+    display.appendChild(document.createElement('br'));
     display.appendChild(box);
   }
 // TODO: Option to load more updates
@@ -180,6 +196,7 @@ function privacy_openconfig(prefix, priv)
     checkbox.type='checkbox';
     checkbox.name=prefix+'_privacy_circles';
     checkbox.value=item.index;
+    checkbox.dataset.name=item.name;
     label.appendChild(checkbox);
     label.appendChild(document.createTextNode(item.name+' '));
     circlebox.appendChild(label);
@@ -207,7 +224,7 @@ function privacy_save(prefix)
   var items=document.getElementsByName(prefix+'_privacy_circles');
   for(item of items)
   {
-    if(item.checked){circles.push({'index':item.value});}
+    if(item.checked){circles.push({'index':parseInt(item.value),'name':item.dataset.name});}
   }
   return new privacy(flags, circles);
 }
@@ -236,14 +253,14 @@ function circle_openconfig(index, option)
 
 function circle_save()
 {
-  var name=document.getElementById('circle_name');
+  var name=document.getElementById('circle_name').value;
   var priv=privacy_save('circle');
-  circle_set(configcircle_index, name.value, priv);
+  setcircle(configcircle_index, name, priv.flags, priv.bincircles(), priv.circles.length);
   if(configcircle_option)
   {
     var select=configcircle_option.parentNode;
     // Update list of circles
-    configcircle_option.text=name.value;
+    configcircle_option.text=name;
     configcircle_option.value=configcircle_index;
     configcircle_option=false;
     // Make a new 'new circle' option?
@@ -253,4 +270,57 @@ function circle_save()
     select.appendChild(option);
   }
   chdisplay('circle_window',false);
+}
+
+var postwidgetbox=false;
+var postprivacy=new privacy(0,[]);
+function postwidget()
+{
+// TODO: Differences in widgets for posts on others walls or in response to other posts?
+  if(postwidgetbox && postwidgetbox.parentNode)
+  {
+    postwidgetbox.parentNode.removeChild(postwidgetbox);
+  }
+  postwidgetbox=document.createElement('div');
+// TODO: Configurable default privacy?
+  var privtext=document.createTextNode('Privacy: '+postprivacy.toString());
+  postwidgetbox.appendChild(privtext);
+  button=document.createElement('button');
+  button.appendChild(document.createTextNode('Change'));
+  button.onclick=function()
+  {
+    privacy_openconfig('generic', postprivacy);
+    document.getElementById('privacy_button').onclick=function()
+    {
+      postprivacy=privacy_save('generic');
+      chdisplay('privacy_window', false);
+      privtext.textContent='Privacy: '+postprivacy.toString();
+    };
+    chdisplay(false, 'privacy_window');
+  };
+  postwidgetbox.appendChild(button);
+  postwidgetbox.appendChild(document.createElement('br'));
+// TODO: Non-text posts, maybe media for starters
+  var text=document.createElement('textarea');
+  postwidgetbox.appendChild(text);
+  postwidgetbox.appendChild(document.createElement('br'));
+  // Submit button
+  button=document.createElement('button');
+  button.appendChild(document.createTextNode('Post'));
+  button.onclick=function()
+  {
+    createpost(text.value, postprivacy.flags, postprivacy.bincircles(), postprivacy.circles.length);
+// TODO: Instead of reloading the user page, insert the update and hide the postwidget (and re-show postbutton)
+    page_user(false);
+  };
+  postwidgetbox.appendChild(button);
+  // Re-show all postbuttons
+  var buttons=document.getElementsByName('postbutton');
+  for(button of buttons)
+  {
+    button.style.display='inline';
+  }
+  // Hide this one and insert postwidget
+  this.style.display='none';
+  this.parentNode.insertBefore(postwidgetbox, this);
 }

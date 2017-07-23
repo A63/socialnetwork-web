@@ -34,12 +34,15 @@ var circle_getprivacyptr;
 var social_addfriend;
 var social_finduser;
 var user_getupdatecount;
-var user_getupdatetype;
-var user_getupdatetimestamp;
+var user_getupdateptr;
+var update_gettype;
+var update_gettimestamp;
+var update_post_getmessage;
 var self_getid;
 var privacy_getflags;
 var privacy_getcirclecount;
 var privacy_getcircle;
+var createpost;
 
 var websockproxy_to=false;
 var firstpacket=true;
@@ -84,12 +87,15 @@ function init(privkey)
   social_addfriend=Module.cwrap('social_addfriend', null, ['array', 'number']);
   social_finduser=Module.cwrap('social_finduser', 'number', ['array']);
   user_getupdatecount=Module.cwrap('user_getupdatecount', 'number', ['number']);
-  user_getupdatetype=Module.cwrap('user_getupdatetype', 'string', ['number','number']);
-  user_getupdatetimestamp=Module.cwrap('user_getupdatetimestamp', 'number', ['number','number']);
+  user_getupdateptr=Module.cwrap('user_getupdateptr', 'number', ['number','number']);
+  update_gettype=Module.cwrap('update_gettype', 'string', ['number']);
+  update_gettimestamp=Module.cwrap('update_gettimestamp', 'number', ['number']);
+  update_post_getmessage=Module.cwrap('update_post_getmessage', 'string', ['number']);
   self_getid=Module.cwrap('self_getid', 'string', []);
   privacy_getflags=Module.cwrap('privacy_getflags', 'number', ['number']);
   privacy_getcirclecount=Module.cwrap('privacy_getcirclecount', 'number', ['number']);
   privacy_getcircle=Module.cwrap('privacy_getcircle', 'number', ['number', 'number']);
+  createpost=Module.cwrap('createpost', null, ['string', 'number', 'array', 'number']);
 
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
   FS.writeFile('privkey.pem', privkey, {});
@@ -138,18 +144,6 @@ function circle_getprivacy(index)
   var ptr=circle_getprivacyptr(index);
   return getprivacy(ptr);
 }
-function circle_set(index, name, priv)
-{
-  var circles=[];
-  for(circle of priv.circles) // Can only pass Uint8 arrays, so construct our Uint32 values from Uint8 pieces
-  {
-    circles.push(circle.index&0xff);
-    circles.push((circle.index&0xff00)/0x100);
-    circles.push((circle.index&0xff0000)/0x10000);
-    circles.push((circle.index&0xff000000)/0x1000000);
-  }
-  setcircle(configcircle_index, name, priv.flags, new Uint8Array(circles), priv.circles.length);
-}
 function hextobin(hex)
 {
   var bin=new Array();
@@ -173,15 +167,40 @@ function getuser(id)
 function user_getupdate(user, index)
 {
   var update=new Object();
-  update.type=user_getupdatetype(user.ptr, index);
-  update.timestamp=user_getupdatetimestamp(user.ptr, index);
-// TODO: Get type-specific data
+  var ptr=user_getupdateptr(user.ptr, index);
+  update.type=update_gettype(ptr);
+  update.timestamp=update_gettimestamp(ptr);
+  // Get type-specific data
+  switch(update.type)
+  {
+  case 'Post':
+    update.message=update_post_getmessage(ptr);
+    break;
+  }
   return update;
 }
 function privacy(flags, circles)
 {
   this.flags=flags;
   this.circles=circles;
+  this.toString=function()
+  {
+    if(this.flags&1){return 'Everyone';}
+    if(this.flags&2){return 'Friends';}
+    return 'Select circles only ('+this.circles.length+')';
+  };
+  this.bincircles=function()
+  { // Can only pass Uint8 arrays to C functions, so construct our Uint32 values from Uint8 pieces
+    var circles=[];
+    for(circle of this.circles)
+    {
+      circles.push(circle.index&0xff);
+      circles.push((circle.index&0xff00)/0x100);
+      circles.push((circle.index&0xff0000)/0x10000);
+      circles.push((circle.index&0xff000000)/0x1000000);
+    }
+    return new Uint8Array(circles);
+  };
 }
 function getprivacy(ptr)
 {
