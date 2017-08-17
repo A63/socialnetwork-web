@@ -135,8 +135,19 @@ function page_friends()
     var count=circle_getcount(item.index);
     for(var i=0; i<count; ++i)
     {
-      var user=circle_getid(item.index, i);
-      display.appendChild(document.createTextNode(user));
+      var id=circle_getid(item.index, i);
+      // Get user and get their name field, TODO: maybe a 'picture' field for main profile picture?
+      var user=getuser(id);
+      if(!user){continue;}
+      var name=(user.fields['name']?user.fields['name'].value:id);
+      if(!name){name=id;}
+      // Link to profile
+      var link=document.createElement('a');
+      link.href='#';
+      link.dataset.id=id;
+      link.onclick=function(){page_user(this.dataset.id); return false;};
+      link.appendChild(document.createTextNode(name));
+      display.appendChild(link);
       display.appendChild(document.createElement('br'));
     }
   }
@@ -144,19 +155,54 @@ function page_friends()
 
 function page_user(id)
 {
-  if(!id){id=self_getid();} // No ID = show our own page
+  var userself=self_getid();
+  if(!id){id=userself;} // No ID = show our own page
   var display=document.getElementById('display');
   dom_clear(display);
-  // TODO: Get and present fields
   var user=getuser(id);
-  display.appendChild(document.createTextNode(id+':'));
-  display.appendChild(document.createElement('br'));
-  var button=document.createElement('button');
-  button.name='postbutton';
-  button.onclick=postwidget;
-  button.appendChild(document.createTextNode('Create update'));
-  display.appendChild(button);
-  display.appendChild(document.createElement('br'));
+  // Placeholder for common fields
+  if(!user.fields['name']){user.fields['name']={'value':''};}
+  // List fields and their values
+  var fields=document.createElement('p');
+  for(field in user.fields)
+  {
+    var span=document.createElement('span');
+    span.appendChild(document.createTextNode(field+': '+user.fields[field].value));
+    if(id==userself) // If self, enable editing
+    {
+      span.dataset.name=field;
+      span.dataset.value=user.fields[field].value;
+      if(user.fields[field].privacy)
+      {
+        span.dataset.privacyflags=user.fields[field].privacy.flags;
+        span.dataset.privacycircles=JSON.stringify(user.fields[field].privacy.circles);
+      }
+      span.className='updatebutton';
+      span.onclick=fieldwidget;
+      var button=document.createElement('button');
+      button.appendChild(document.createTextNode('Edit'));
+      span.appendChild(button);
+    }
+    fields.appendChild(span);
+    fields.appendChild(document.createElement('br'));
+  }
+  if(id==userself) // If self, enable editing
+  {
+    // Field button
+    var button=document.createElement('button');
+    button.className='updatebutton';
+    button.onclick=fieldwidget;
+    button.appendChild(document.createTextNode('Add field'));
+    fields.appendChild(button);
+    display.appendChild(fields);
+    // Post button
+    button=document.createElement('button');
+    button.className='updatebutton';
+    button.onclick=postwidget;
+    button.appendChild(document.createTextNode('Create post'));
+    display.appendChild(button);
+    display.appendChild(document.createElement('br'));
+  }
   display.appendChild(document.createTextNode(user.updatecount+' updates'));
   for(var i=1; i<=user.updatecount && i<=20; ++i)
   {
@@ -272,55 +318,94 @@ function circle_save()
   chdisplay('circle_window',false);
 }
 
-var postwidgetbox=false;
-var postprivacy=new privacy(0,[]);
-function postwidget()
+var updatewidgetbox=false;
+var updateprivacy=new privacy(0,[]);
+function updatewidget(updatebutton, title)
 {
-// TODO: Differences in widgets for posts on others walls or in response to other posts?
-  if(postwidgetbox && postwidgetbox.parentNode)
+  if(updatewidgetbox && updatewidgetbox.parentNode)
   {
-    postwidgetbox.parentNode.removeChild(postwidgetbox);
+    updatewidgetbox.parentNode.removeChild(updatewidgetbox);
   }
-  postwidgetbox=document.createElement('div');
+  updatewidgetbox=document.createElement('div');
+  updatewidgetbox.className='updatebox';
 // TODO: Configurable default privacy?
-  var privtext=document.createTextNode('Privacy: '+postprivacy.toString());
-  postwidgetbox.appendChild(privtext);
+  var bold=document.createElement('strong');
+  bold.appendChild(document.createTextNode(title));
+  updatewidgetbox.appendChild(bold);
+  updatewidgetbox.appendChild(document.createElement('br'));
+  var privtext=document.createTextNode('Privacy: '+updateprivacy.toString());
+  updatewidgetbox.appendChild(privtext);
   button=document.createElement('button');
   button.appendChild(document.createTextNode('Change'));
   button.onclick=function()
   {
-    privacy_openconfig('generic', postprivacy);
+    privacy_openconfig('generic', updateprivacy);
     document.getElementById('privacy_button').onclick=function()
     {
-      postprivacy=privacy_save('generic');
+      updateprivacy=privacy_save('generic');
       chdisplay('privacy_window', false);
-      privtext.textContent='Privacy: '+postprivacy.toString();
+      privtext.textContent='Privacy: '+updateprivacy.toString();
     };
     chdisplay(false, 'privacy_window');
   };
-  postwidgetbox.appendChild(button);
-  postwidgetbox.appendChild(document.createElement('br'));
+  updatewidgetbox.appendChild(button);
+  updatewidgetbox.appendChild(document.createElement('br'));
+  // Re-show all updatebuttons
+  var buttons=document.getElementsByClassName('updatebutton');
+  for(button of buttons)
+  {
+    button.style.display='inline';
+  }
+  // Hide this one and insert updatewidget
+  updatebutton.style.display='none';
+  updatebutton.parentNode.insertBefore(updatewidgetbox, updatebutton);
+  return updatewidgetbox;
+}
+function postwidget()
+{
+// TODO: Differences in widgets for posts on others walls or in response to other posts?
+  var box=updatewidget(this, 'New post');
 // TODO: Non-text posts, maybe media for starters
   var text=document.createElement('textarea');
-  postwidgetbox.appendChild(text);
-  postwidgetbox.appendChild(document.createElement('br'));
+  box.appendChild(text);
+  box.appendChild(document.createElement('br'));
   // Submit button
   button=document.createElement('button');
   button.appendChild(document.createTextNode('Post'));
   button.onclick=function()
   {
-    createpost(text.value, postprivacy.flags, postprivacy.bincircles(), postprivacy.circles.length);
-// TODO: Instead of reloading the user page, insert the update and hide the postwidget (and re-show postbutton)
+    createpost(text.value, updateprivacy.flags, updateprivacy.bincircles(), updateprivacy.circles.length);
+// TODO: Instead of reloading the user page, insert the update and hide the updatewidget (and re-show postbutton)
     page_user(false);
   };
-  postwidgetbox.appendChild(button);
-  // Re-show all postbuttons
-  var buttons=document.getElementsByName('postbutton');
-  for(button of buttons)
+  box.appendChild(button);
+}
+function fieldwidget()
+{
+  if(this.dataset.privacyflags!==undefined && this.dataset.privacycircles)
   {
-    button.style.display='inline';
+    updateprivacy.flags=this.dataset.privacyflags;
+    updateprivacy.circles=JSON.parse(this.dataset.privacycircles);
   }
-  // Hide this one and insert postwidget
-  this.style.display='none';
-  this.parentNode.insertBefore(postwidgetbox, this);
+  var box=updatewidget(this, this.dataset.name?'Edit field':'New field');
+  var name=document.createElement('input');
+  name.type='text';
+  box.appendChild(name);
+  box.appendChild(document.createTextNode(': '));
+  var value=document.createElement('input');
+  value.type='text';
+  // Use existing values if provided
+  if(this.dataset.name){name.value=this.dataset.name; name.readOnly=true;}
+  if(this.dataset.value){value.value=this.dataset.value;}
+  box.appendChild(value);
+  // Save button
+  button=document.createElement('button');
+  button.appendChild(document.createTextNode('Save'));
+  button.onclick=function()
+  {
+    setfield(name.value, value.value, updateprivacy.flags, updateprivacy.bincircles(), updateprivacy.circles.length);
+// TODO: Instead of reloading the user page, insert the field and hide the updatewidget (and re-show field button)
+    page_user(false);
+  };
+  box.appendChild(button);
 }

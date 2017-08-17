@@ -62,3 +62,17 @@ div.update
   box-shadow:0px 0px 2px #c0c0c0;
   background-color:#ffffff;
 }
+div.updatebox
+{
+  border-style:solid;
+  border-color:#000000;
+  border-width:1px;
+  border-radius:6px;
+  padding:4px;
+  margin:5px;
+  min-width:40%;
+  max-width:96%;
+  display:inline-block;
+  box-shadow:0px 0px 4px #0080ff;
+  background-color:#ffffff;
+}

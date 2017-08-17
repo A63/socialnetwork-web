@@ -4,11 +4,11 @@ EMSCRIPTVERSION=1.37.12
 GMPVERSION=6.1.2
 NETTLEVERSION=3.3
 GNUTLSVERSION=3.5.12
-SOCIALNETWORKREVISION=f5e92db17a617d4777df4b7a1107d67114d3b6f9
+SOCIALNETWORKREVISION=b3f54256b676bbca6805fd5c27d4270f6994f31d
 REVISION=$(shell git log | sed -n -e 's/^commit //p;q')
 JSLIBS=$(shell PKG_CONFIG_PATH=toolchain/usr/lib/pkgconfig pkg-config --libs gnutls nettle hogweed) -lgmp
 JSCFLAGS=$(shell PKG_CONFIG_PATH=toolchain/usr/lib/pkgconfig pkg-config --cflags gnutls)
-JSSYMBOLS='_social_init','_peer_handlesocket','_peer_new_unique','_websockproxy_read','_websockproxy_setwrite','_getcirclecount','_circle_getcount','_circle_getname','_circle_getprivacyptr','_social_addfriend','_circle_getid','_social_finduser','_self_getid','_user_getupdatecount','_user_getupdateptr','_update_gettype','_update_gettimestamp','_update_post_getmessage','_setcircle','_privacy_getflags','_privacy_getcirclecount','_privacy_getcircle','_createpost'
+JSSYMBOLS='_social_init','_peer_handlesocket','_peer_new_unique','_websockproxy_read','_websockproxy_setwrite','_getcirclecount','_circle_getcount','_circle_getname','_circle_getprivacyptr','_social_addfriend','_circle_getid','_social_finduser','_self_getid','_user_getupdatecount','_user_getupdateptr','_update_gettype','_update_gettimestamp','_update_getprivacy','_update_post_getmessage','_update_field_getname','_update_field_getvalue','_setcircle','_privacy_getflags','_privacy_getcirclecount','_privacy_getcircle','_createpost','_setfield'
 
 all: webpeer libsocial.js
 

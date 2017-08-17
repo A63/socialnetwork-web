@@ -37,12 +37,16 @@ var user_getupdatecount;
 var user_getupdateptr;
 var update_gettype;
 var update_gettimestamp;
+var update_getprivacy;
 var update_post_getmessage;
+var update_field_getname;
+var update_field_getvalue;
 var self_getid;
 var privacy_getflags;
 var privacy_getcirclecount;
 var privacy_getcircle;
 var createpost;
+var setfield;
 
 var websockproxy_to=false;
 var firstpacket=true;
@@ -75,8 +79,8 @@ function handlenet(data)
 }
 function init(privkey)
 {
-  websockproxy_read=Module.cwrap('websockproxy_read', null, ['array', 'number', 'array', 'number']);
-  peer_new_unique=Module.cwrap('peer_new_unique', 'array', ['number', 'array', 'number']);
+  websockproxy_read=Module.cwrap('websockproxy_read', null, ['array','number','array','number']);
+  peer_new_unique=Module.cwrap('peer_new_unique', 'array', ['number','array','number']);
   // Low level access functions
   getcirclecount=Module.cwrap('getcirclecount', 'number', []);
   circle_getcount=Module.cwrap('circle_getcount', 'number', ['number']);
@@ -90,12 +94,16 @@ function init(privkey)
   user_getupdateptr=Module.cwrap('user_getupdateptr', 'number', ['number','number']);
   update_gettype=Module.cwrap('update_gettype', 'string', ['number']);
   update_gettimestamp=Module.cwrap('update_gettimestamp', 'number', ['number']);
+  update_getprivacy=Module.cwrap('update_getprivacy', 'number', ['number']);
   update_post_getmessage=Module.cwrap('update_post_getmessage', 'string', ['number']);
+  update_field_getname=Module.cwrap('update_field_getname', 'string', ['number']);
+  update_field_getvalue=Module.cwrap('update_field_getvalue', 'string', ['number']);
   self_getid=Module.cwrap('self_getid', 'string', []);
   privacy_getflags=Module.cwrap('privacy_getflags', 'number', ['number']);
   privacy_getcirclecount=Module.cwrap('privacy_getcirclecount', 'number', ['number']);
-  privacy_getcircle=Module.cwrap('privacy_getcircle', 'number', ['number', 'number']);
-  createpost=Module.cwrap('createpost', null, ['string', 'number', 'array', 'number']);
+  privacy_getcircle=Module.cwrap('privacy_getcircle', 'number', ['number','number']);
+  createpost=Module.cwrap('createpost', null, ['string','number','array','number']);
+  setfield=Module.cwrap('setfield', null, ['string','string','number','array','number']);
 
   _websockproxy_setwrite(Runtime.addFunction(websockwrite));
   FS.writeFile('privkey.pem', privkey, {});
@@ -160,8 +168,17 @@ function getuser(id)
   var user=new Object();
   user.ptr=userptr;
   user.id=id;
-// TODO: Gather more user data? No need to store updates themselves in user objects though
+// TODO: Gather more user data? No need to store updates themselves in user objects though, except for fields
   user.updatecount=user_getupdatecount(userptr);
+  user.fields={};
+  for(var i=0; i<user.updatecount; ++i)
+  {
+    var update=user_getupdate(user, i);
+    if(update.type=='Field')
+    {
+      user.fields[update.name]=update;
+    }
+  }
   return user;
 }
 function user_getupdate(user, index)
@@ -170,11 +187,16 @@ function user_getupdate(user, index)
   var ptr=user_getupdateptr(user.ptr, index);
   update.type=update_gettype(ptr);
   update.timestamp=update_gettimestamp(ptr);
+  update.privacy=getprivacy(update_getprivacy(ptr));
   // Get type-specific data
   switch(update.type)
   {
   case 'Post':
     update.message=update_post_getmessage(ptr);
+    break;
+  case 'Field':
+    update.name=update_field_getname(ptr);
+    update.value=update_field_getvalue(ptr);
     break;
   }
   return update;

@@ -94,7 +94,10 @@ const char* update_gettype(struct update* update)
   return "Unknown";
 }
 uint64_t update_gettimestamp(struct update* update){return update->timestamp;}
+struct privacy* update_getprivacy(struct update* update){return &update->privacy;}
 const char* update_post_getmessage(struct update* update){return update->post.message;}
+const char* update_field_getname(struct update* update){return update->field.name;}
+const char* update_field_getvalue(struct update* update){return update->field.value;}
 const char* self_getid(void)
 {
   unsigned char* bin=social_self->id;
@@ -113,4 +116,13 @@ void createpost(const char* msg, uint8_t flags, void* circles, uint32_t circleco
     .circlecount=circlecount
   };
   social_createpost(msg, &priv);
+}
+void setfield(const char* name, const char* value, uint8_t flags, void* circles, uint32_t circlecount)
+{
+  struct privacy priv={
+    .flags=flags,
+    .circles=circles,
+    .circlecount=circlecount
+  };
+  social_updatefield(name, value, &priv);
 }
