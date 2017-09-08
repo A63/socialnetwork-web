@@ -185,6 +185,7 @@ function user_getupdate(user, index)
 {
   var update=new Object();
   var ptr=user_getupdateptr(user.ptr, index);
+  update.user=user;
   update.type=update_gettype(ptr);
   update.timestamp=update_gettimestamp(ptr);
   update.privacy=getprivacy(update_getprivacy(ptr));
@@ -200,6 +201,15 @@ function user_getupdate(user, index)
     break;
   }
   return update;
+}
+function user_getupdates(user)
+{
+  var updates=[];
+  for(var i=0; i<user.updatecount; ++i)
+  {
+    updates.push(user_getupdate(user, i));
+  }
+  return updates;
 }
 function privacy(flags, circles)
 {
@@ -239,4 +249,19 @@ function getprivacy(ptr)
     circles.push(circle);
   }
   return new privacy(flags, circles);
+}
+function getfriends()
+{
+  var friends=[];
+  var circles=getcircles();
+  for(item of circles)
+  {
+    var count=circle_getcount(item.index);
+    for(var i=0; i<count; ++i)
+    {
+      var id=circle_getid(item.index, i);
+      if(friends.indexOf(id)==-1){friends.push(id);}
+    }
+  }
+  return friends;
 }

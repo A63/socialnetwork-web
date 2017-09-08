@@ -91,9 +91,9 @@ printf("Handling websocket input...\n");
       char buf[head.length];
       while(!websock_readcontent(conn, buf, &head));
       struct udpstream* stream=udpstream_find((struct sockaddr_storage*)addr, addrlen);
-      if(!stream) // TODO: Check against blocklist (don't let people use this service to flood others over UDP), also add a brief block for the entire host until we know this connection is ok
+      if(!stream) // Check against blocklist (don't let people use this service to flood others over UDP), also add a brief block for the entire host until we know this connection is ok
       {
-        if(!addrlist_check((struct sockaddr_storage*)addr, addrlen)){continue;}
+        if(!addrlist_check((struct sockaddr_storage*)addr, addrlen)){printf("Address blocklist check failed\n"); continue;}
         stream=udpstream_new(udpsock, (struct sockaddr_storage*)addr, addrlen);
       }
 // printf("Writing %u bytes\n", head.length);

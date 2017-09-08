@@ -70,6 +70,67 @@ function initgui()
 // TODO: display any updates we may have (actually we probably won't have any yet, update when we get them, callback for 'updates' command?)
 }
 
+function linknode(name, callback)
+{
+  var link=document.createElement('a');
+  link.href='#';
+  link.onclick=callback;
+  link.appendChild(document.createTextNode(name));
+  return link;
+}
+
+function drawupdate(update)
+{
+  var box=document.createElement('div');
+  box.className='update';
+  var date=new Date(update.timestamp*1000);
+  box.appendChild(document.createTextNode('Posted at: '+date.toLocaleString()));
+  // Link to the update's author
+  var name=(update.user.fields['name']?update.user.fields['name'].value:update.user.id);
+  if(!name){name=update.user.id;}
+  var userlink=linknode(name, function(){page_user(this.dataset.id); return false;});
+  userlink.dataset.id=update.user.id;
+  // Display type-specific data
+  if(update.type=='Post')
+  {
+    box.appendChild(document.createTextNode(' by '));
+    box.appendChild(userlink);
+    box.appendChild(document.createElement('br'));
+    box.appendChild(document.createTextNode('Message: '+update.message));
+  }else{
+    box.appendChild(document.createTextNode(' by '));
+    box.appendChild(userlink);
+// TODO: Don't show update type, just handle each type
+    box.appendChild(document.createElement('br'));
+    box.appendChild(document.createTextNode('Update type: '+update.type));
+  }
+  return box;
+}
+
+function page_feed()
+{
+  var display=document.getElementById('display');
+  dom_clear(display);
+  // Get updates from every user
+  var updates=[];
+  var friends=getfriends();
+  for(var i=0; i<friends.length; ++i)
+  {
+    var upd=user_getupdates(getuser(friends[i]));
+    updates=updates.concat(upd);
+  }
+  // Sort updates
+  updates.sort(function(a,b){return b.timestamp-a.timestamp;});
+  for(var i=0; i<updates.length; ++i)
+  {
+    if(updates[i].type=='Circle'){continue;} // Don't display circle changes
+    display.appendChild(document.createElement('br'));
+    var box=drawupdate(updates[i]);
+    display.appendChild(box);
+  }
+  // TODO: option to load more updates
+}
+
 function page_friends()
 {
   var display=document.getElementById('display');
@@ -142,11 +203,8 @@ function page_friends()
       var name=(user.fields['name']?user.fields['name'].value:id);
       if(!name){name=id;}
       // Link to profile
-      var link=document.createElement('a');
-      link.href='#';
+      var link=linknode(name, function(){page_user(this.dataset.id); return false;});
       link.dataset.id=id;
-      link.onclick=function(){page_user(this.dataset.id); return false;};
-      link.appendChild(document.createTextNode(name));
       display.appendChild(link);
       display.appendChild(document.createElement('br'));
     }
@@ -204,23 +262,12 @@ function page_user(id)
     display.appendChild(document.createElement('br'));
   }
   display.appendChild(document.createTextNode(user.updatecount+' updates'));
-  for(var i=1; i<=user.updatecount && i<=20; ++i)
+  var updates=user_getupdates(user);
+  for(var i=0; i<updates.length; ++i)
   {
-    var update=user_getupdate(user, user.updatecount-i);
-    if(update.type=='Circle'){continue;} // Don't display circle changes
-    var box=document.createElement('div');
-    box.className='update';
-    var date=new Date(update.timestamp*1000);
-    box.appendChild(document.createTextNode('Posted at: '+date.toLocaleString()));
-    box.appendChild(document.createElement('br'));
-    box.appendChild(document.createTextNode('Update type: '+update.type));
-    // Display type-specific data
-    if(update.type=='Post')
-    {
-      box.appendChild(document.createElement('br'));
-      box.appendChild(document.createTextNode('Message: '+update.message));
-    }
+    if(updates[i].type=='Circle'){continue;} // Don't display circle changes
     display.appendChild(document.createElement('br'));
+    var box=drawupdate(updates[i]);
     display.appendChild(box);
   }
 // TODO: Option to load more updates
