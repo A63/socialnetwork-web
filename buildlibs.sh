@@ -1,6 +1,6 @@
 #!/bin/sh -e
 #   socialnetwork-web, peer-to-peer social network web client
-#   Copyright (C) 2017  alicia@ion.nu
+#   Copyright (C) 2017-2018  alicia@ion.nu
 #
 #   This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU Affero General Public License version 3
@@ -22,6 +22,8 @@ export LDFLAGS='-O3'
 GMPVERSION="$1"
 NETTLEVERSION="$2"
 GNUTLSVERSION="$3"
+
+if ! x="`which node 2> /dev/null`" || [ -z "$x" ]; then echo 'Building with emscripten depends on node.js'; exit 1; fi
 
 cd toolchain
 # gmp
